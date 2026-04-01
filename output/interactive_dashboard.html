@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📱 Jumia Phone Price Tracker - Interactive Dashboard</title>
+    
+    <!-- Chart.js for beautiful charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .stat-card .value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .controls {
+            padding: 20px 30px;
+            background: white;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .control-group label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .control-group input, .control-group select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+        
+        .control-group input:focus, .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .price-range {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .price-range input {
+            width: 100%;
+        }
+        
+        .price-values {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .chart-container {
+            padding: 30px;
+            background: white;
+            height: 400px;
+        }
+        
+        .table-container {
+            padding: 30px;
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            cursor: pointer;
+            position: sticky;
+            top: 0;
+            transition: all 0.3s;
+        }
+        
+        th:hover {
+            opacity: 0.9;
+        }
+        
+        th i {
+            margin-left: 5px;
+            font-size: 0.8em;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .price {
+            font-weight: bold;
+            color: #27ae60;
+        }
+        
+        .rating {
+            color: #f39c12;
+        }
+        
+        .brand-badge {
+            background: #e0e0e0;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            display: inline-block;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 1.2em;
+        }
+        
+        .footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+        
+        .active-filters {
+            padding: 0 30px 20px 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .filter-tag {
+            background: #e0e0e0;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .filter-tag i {
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .filter-tag i:hover {
+            color: #e74c3c;
+        }
+        
+        .btn-reset {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        
+        .btn-reset:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-mobile-alt"></i> Jumia Nigeria Phone Price Tracker</h1>
+            <p>Interactive Dashboard • April 01, 2026</p>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Phones</h3>
+                <div class="value" id="total-count">49</div>
+            </div>
+            <div class="stat-card">
+                <h3>Price Range</h3>
+                <div class="value">₦6,340 - ₦1,729,998</div>
+            </div>
+            <div class="stat-card">
+                <h3>Average Price</h3>
+                <div class="value">₦257,479</div>
+            </div>
+            <div class="stat-card">
+                <h3>Brands</h3>
+                <div class="value">6</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label><i class="fas fa-search"></i> Search Products</label>
+                <input type="text" id="search-input" placeholder="Type to search... (e.g., Samsung, iPhone)">
+            </div>
+            
+            <div class="control-group">
+                <label><i class="fas fa-filter"></i> Filter by Brand</label>
+                <select id="brand-select">
+                    <option value="all">All Brands</option>
+                    <option value="Infinix">Infinix</option><option value="Nokia">Nokia</option><option value="Other">Other</option><option value="Samsung">Samsung</option><option value="Tecno">Tecno</option><option value="Xiaomi">Xiaomi</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label><i class="fas fa-sort"></i> Sort By</label>
+                <select id="sort-select">
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="name-asc">Name: A to Z</option>
+                    <option value="name-desc">Name: Z to A</option>
+                    <option value="rating-desc">Highest Rated</option>
+                    <option value="discount-desc">Biggest Discount</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label><i class="fas fa-dollar-sign"></i> Price Range</label>
+                <div class="price-range">
+                    <input type="range" id="price-min" min="6340.0" max="1729998.0" value="6340.0">
+                    <input type="range" id="price-max" min="6340.0" max="1729998.0" value="1729998.0">
+                </div>
+                <div class="price-values">
+                    <span>₦<span id="min-price-display">6,340</span></span>
+                    <span>₦<span id="max-price-display">1,729,998</span></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="active-filters" id="active-filters">
+            <button class="btn-reset" onclick="resetFilters()">
+                <i class="fas fa-undo"></i> Reset All Filters
+            </button>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="priceChart"></canvas>
+        </div>
+        
+        <div class="table-container">
+            <table id="products-table">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('name')">Product Name <i class="fas fa-sort"></i></th>
+                        <th onclick="sortTable('price')">Price (₦) <i class="fas fa-sort"></i></th>
+                        <th onclick="sortTable('brand')">Brand <i class="fas fa-sort"></i></th>
+                        <th onclick="sortTable('rating')">Rating <i class="fas fa-sort"></i></th>
+                        <th onclick="sortTable('discount')">Discount <i class="fas fa-sort"></i></th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Filled by JavaScript -->
+                </tbody>
+            </table>
+            <div id="no-results" class="no-results" style="display: none;">
+                <i class="fas fa-search"></i> No products match your filters
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><i class="fas fa-code"></i> Built with Python, BeautifulSoup, and JavaScript | Data from Jumia Nigeria</p>
+            <p style="font-size: 0.8em; margin-top: 10px;">Last updated: 2026-04-01 19:01</p>
+        </div>
+    </div>
+    
+    <script>
+        // Load product data
+        const products = [{"name": "MKTEL B310 1.77inch Screen Dual SIM FM Radio Bluetooth Torch Light Dark White", "price": 6340.0, "brand": "Other", "rating": 14.1, "discount": 0, "url": "https://www.jumia.com.ng/mktel-b310-1.77inch-screen-dual-sim-fm-radio-bluetooth-torch-light-dark-white-419142379.html"}, {"name": "MKTEL MKTEL B310 1.77inch Screen Dual SIM FM Radio Bluetooth Torch Light Dark Blue", "price": 6580.0, "brand": "Other", "rating": 13.5, "discount": 0, "url": "https://www.jumia.com.ng/mktel-mktel-b310-1.77inch-screen-dual-sim-fm-radio-bluetooth-torch-light-dark-blue-419145821.html"}, {"name": "Sunelan S8 1.8\" Screen Phone, Dual SIM, Game, Camera BL 5C_Battery - Black", "price": 6846.0, "brand": "Other", "rating": 13.7, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=SU017MP6VJX5HNAFAMZ-719170851&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "Sunelan S8 1.8\" Screen Phone, Dual SIM, Game, Camera BL 5C_Battery - Black Red.", "price": 6846.0, "brand": "Other", "rating": 13.7, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=SU017MP7V9XG5NAFAMZ-719170857&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "Sunelan S7 1.8\" Screen Phone, Dual SIM, Game, Camera BL 5C_Battery - Black", "price": 6846.0, "brand": "Other", "rating": 13.7, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=SU017MP7PB2VPNAFAMZ-719119258&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "Sunelan S7 1.8\" Screen Phone, Dual SIM, Game, Camera BL 5C_Battery - Black&Red", "price": 6846.0, "brand": "Other", "rating": 13.8, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=SU017MP7JY6FPNAFAMZ-719119267&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "MKTEL M2023 Big Keypad Button Phone 1.77\" Dual SIM 800mAh FM Radio Torch Bluetooth MP3", "price": 7369.0, "brand": "Other", "rating": 13.7, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=MK913MP83GCONNAFAMZ-719909680&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "MKTEL M2023 Big Keypad Button Phone 1.77\" Dual SIM 800mAh FM Radio Torch Bluetooth MP3", "price": 7369.0, "brand": "Other", "rating": 14.0, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=MK913MP75DQI7NAFAMZ-719924114&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "MKTEL M2023 Big Keypad Button Phone 1.77\" Dual SIM 800mAh FM Radio Torch Bluetooth MP3", "price": 7369.0, "brand": "Other", "rating": 13.8, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=MK913MP7SLN3JNAFAMZ-719924108&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "CALLONG CA 800 Wireless FM Torchlight Dual SIM Battery 1000mAh", "price": 7380.0, "brand": "Other", "rating": 13.7, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=GE779MP7VYIUKNAFAMZ-706128878&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "Philips Fun100 Wireless FM,2.0'' Big Screen,4MB+4MB,1000mAh,2000Phone Book - Deep Blue", "price": 8145.0, "brand": "Other", "rating": 13.9, "discount": 0, "url": "https://www.jumia.com.ng/philips-fun100-wireless-fm2.0-big-screen4mb4mb1000mah2000phone-book-deep-blue-408193754.html"}, {"name": "Philips Fun100 Wireless FM,2.0'' Big Screen,4MB+4MB,1000 mAh,2000 Phone Book - Black", "price": 8145.0, "brand": "Other", "rating": 14.0, "discount": 0, "url": "https://www.jumia.com.ng/philips-fun100-wireless-fm2.0-big-screen4mb4mb1000-mah2000-phone-book-black-409255889.html"}, {"name": "itel 2165 Wireless FM, Torch, Dual SIM Phone + 24 Month Warranty", "price": 10990.0, "brand": "Other", "rating": 13.7, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=IT724MP5RF3OONAFAMZ-674647889&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "Nokia Button Dual Sim, Small Basic Phone Cheap Black Color", "price": 11460.0, "brand": "Nokia", "rating": 3.4, "discount": 0, "url": "https://www.jumia.com.ng/nokia-button-dual-sim-small-basic-phone-cheap-black-color-419136069.html"}, {"name": "Tecno T101 1.8\" Dual SIM - Black", "price": 12917.0, "brand": "Tecno", "rating": 13.8, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=TE339MP5HKPYWNAFAMZ-674589225&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "Nokia 105_African Edition 1.77\" 4MB/4MB 800 MAh Dual Sim - Charcoal", "price": 12990.0, "brand": "Nokia", "rating": 13.9, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=HM183MP5AKX9ZNAFAMZ-669424330&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "Sunelan S7 1.8\" Screen Phone, Dual SIM, Game, Camera BL 5C_Battery - Black&Red", "price": 68465.0, "brand": "Other", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/sunelan-s7-1.8-screen-phone-dual-sim-game-camera-bl-5cbattery-blackred-418507765.html"}, {"name": "Sunelan S7 1.8\" Screen Phone, Dual SIM, Game, Camera BL 5C_Battery - Black", "price": 68465.0, "brand": "Other", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/sunelan-s7-1.8-screen-phone-dual-sim-game-camera-bl-5cbattery-black-418507756.html"}, {"name": "Sunelan S8 1.8\" Screen Phone, Dual SIM, Game, Camera BL 5C_Battery - Black Red.", "price": 68465.0, "brand": "Other", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/sunelan-s8-1.8-screen-phone-dual-sim-game-camera-bl-5cbattery-black-red.-418549757.html"}, {"name": "Sunelan S8 1.8\" Screen Phone, Dual SIM, Game, Camera BL 5C_Battery - Black", "price": 68465.0, "brand": "Other", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/sunelan-s8-1.8-screen-phone-dual-sim-game-camera-bl-5cbattery-black-418549751.html"}, {"name": "redbeat D5 Smartphone 6.52inch IPS HD 4GB + 64GB ROM-Black", "price": 76284.0, "brand": "Other", "rating": 13.7, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=RE663MP66TNDONAFAMZ-654718818&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "C Idea C10 6.79 inch phone, 3GB Ram 64GB Rom storage dual camera with fingerprint 4G Cell Sim card", "price": 76808.0, "brand": "Other", "rating": 13.2, "discount": 0, "url": "https://www.jumia.com.ng/c-idea-c10-6.79-inch-phone-3gb-ram-64gb-rom-storage-dual-camera-with-fingerprint-4g-cell-sim-card-411729652.html"}, {"name": "itel A100C 6.6\" 2GB RAM/64GB ROM 5000mAh - Black", "price": 85405.0, "brand": "Other", "rating": 13.9, "discount": 0, "url": "https://www.jumia.com.ng/itel-a100c-6.6-2gb-ram64gb-rom-5000mah-black-418774433.html"}, {"name": "itel A100C 6.6\" 2GB RAM/64GB ROM 5000mAh - Titanium Gold", "price": 85405.0, "brand": "Other", "rating": 13.9, "discount": 0, "url": "https://www.jumia.com.ng/itel-a100c-6.6-2gb-ram64gb-rom-5000mah-titanium-gold-418774434.html"}, {"name": "FreeYond FreeYond M5,4GB+128GB,4G 6.52\" Smartphone 5000mAh,Grey", "price": 89284.0, "brand": "Other", "rating": 23.8, "discount": 10.0, "url": "https://www.jumia.com.ng/freeyond-freeyond-m54gb128gb4g-6.52-smartphone-5000mahgrey-252928543.html"}, {"name": "Philips Essence 20 6.56 HD Punch Hole 128GB ROM / Up To 8G ( 4 + 4 GB) Extended RAM Android 13 - Moonlight Black", "price": 99900.0, "brand": "Other", "rating": 14.2, "discount": 0, "url": "https://www.jumia.com.ng/philips-essence-20-6.56-hd-punch-hole-128gb-rom-up-to-8g-4-4-gb-extended-ram-android-13-moonlight-black-418191959.html"}, {"name": "XIAOMI REDMI A5 - 6.88 3GB RAM/64GB ROM -- BLACK", "price": 105999.0, "brand": "Xiaomi", "rating": 14.0, "discount": 0, "url": "https://www.jumia.com.ng/xiaomi-redmi-a5-6.88-3gb-ram64gb-rom-black-408237967.html"}, {"name": "Tecno POP10 6.67\" 3GB RAM / 64GB ROM Android 14 - Black", "price": 112999.0, "brand": "Tecno", "rating": 14.2, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=TE339MP6VOLR7NAFAMZ-719796117&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "Poco C71 6.88\" 4GB RAM / 128GB ROM Android 15 - Blue", "price": 114999.0, "brand": "Other", "rating": 14.1, "discount": 0, "url": "https://www.jumia.com.ng/poco-c71-6.88-4gb-ram-128gb-rom-android-15-blue-417088656.html"}, {"name": "Samsung Galaxy A06 6.7\" 4GB RAM/64GB ROM Android 14 - Black", "price": 117448.0, "brand": "Samsung", "rating": 14.1, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=SA948MP7KVUNENAFAMZ-701044225&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "itel City 100 7.65mm\" Slim Design 5200mah Android 128/4+8gb", "price": 118080.0, "brand": "Other", "rating": 14.1, "discount": 0, "url": "https://www.jumia.com.ng/itel-city-100-7.65mm-slim-design-5200mah-android-12848gb-409243093.html"}, {"name": "XIAOMI Redmi 15C 6.9'' 4GBRAM/128GB ROM Android 15 -Midnight Black", "price": 134999.0, "brand": "Xiaomi", "rating": 14.1, "discount": 0, "url": "https://www.jumia.com.ng/xiaomi-redmi-15c-6.9-4gbram128gb-rom-android-15-midnight-black-418597148.html"}, {"name": "Samsung Galaxy A06 6.7\" 4GB RAM/ 128GB ROM Android 14 - Black", "price": 138943.0, "brand": "Samsung", "rating": 14.2, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=SA948MP6LMSKGNAFAMZ-677610821&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "XIAOMI Redmi 15C 6.9'' 6GBRAM/128GB ROM Android 15 -Midnight Black", "price": 148806.0, "brand": "Xiaomi", "rating": 14.4, "discount": 0, "url": "https://www.jumia.com.ng/xiaomi-redmi-15c-6.9-6gbram128gb-rom-android-15-midnight-black-418761371.html"}, {"name": "Infinix Hot 60i 6.78\" 4GB RAM/128GB ROM Android 15-Black", "price": 151999.0, "brand": "Infinix", "rating": 14.1, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=IN717MP6V1931NAFAMZ-719151081&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "Samsung Galaxy A07 6.7\" 4GB RAM/128GBGB ROM - Black", "price": 153174.0, "brand": "Samsung", "rating": 14.0, "discount": 0, "url": "https://www.jumia.com.ng/samsung-galaxy-a07-6.7-4gb-ram128gbgb-rom-black-418619812.html"}, {"name": "XIAOMI Redmi 15C 6.9'' 8GBRAM/256GB ROM Android 15 -Midnight Black", "price": 172999.0, "brand": "Xiaomi", "rating": 14.2, "discount": 0, "url": "https://www.jumia.com.ng/redmi-15c-6.9-8gbram256gb-rom-android-15-midnight-black-xiaomi-mpg11537492.html"}, {"name": "XIAOMI Redmi 15 6.9'' 8GBRAM/256GB ROM Android 15 - Black", "price": 219001.0, "brand": "Xiaomi", "rating": 14.3, "discount": 0, "url": "https://www.jumia.com.ng/redmi-15-6.9-8gbram256gb-rom-android-15-black-xiaomi-mpg11883477.html"}, {"name": "XIAOMI Redmi Note 15 6.77\" 8GB 256GB Dual SIM 6500mAh AMOLED display- Black", "price": 305331.0, "brand": "Xiaomi", "rating": 14.5, "discount": 0, "url": "https://www.jumia.com.ng/customer/account/login/?tkWl=XI363MP72F3RRNAFAMZ-719990721&return=%2Fmobile-phones%2F%3Fsrsltid%3DAfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"}, {"name": "MKTEL B310 1.77inch Screen Dual SIM FM Radio Bluetooth Torch Light Dark White", "price": 634073.0, "brand": "Other", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/mktel-b310-1.77inch-screen-dual-sim-fm-radio-bluetooth-torch-light-dark-white-419142379.html"}, {"name": "MKTEL MKTEL B310 1.77inch Screen Dual SIM FM Radio Bluetooth Torch Light Dark Blue", "price": 658072.0, "brand": "Other", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/mktel-mktel-b310-1.77inch-screen-dual-sim-fm-radio-bluetooth-torch-light-dark-blue-419145821.html"}, {"name": "MKTEL M2023 Big Keypad Button Phone 1.77\" Dual SIM 800mAh FM Radio Torch Bluetooth MP3", "price": 736975.0, "brand": "Other", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/mktel-m2023-big-keypad-button-phone-1.77-dual-sim-800mah-fm-radio-torch-bluetooth-mp3-419113598.html"}, {"name": "Philips Fun100 Wireless FM,2.0'' Big Screen,4MB+4MB,1000mAh,2000Phone Book - Deep Blue", "price": 814534.0, "brand": "Other", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/philips-fun100-wireless-fm2.0-big-screen4mb4mb1000mah2000phone-book-deep-blue-408193754.html"}, {"name": "Philips Fun100 Wireless FM,2.0'' Big Screen,4MB+4MB,1000 mAh,2000 Phone Book - Black", "price": 814534.0, "brand": "Other", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/philips-fun100-wireless-fm2.0-big-screen4mb4mb1000-mah2000-phone-book-black-409255889.html"}, {"name": "itel A100C 6.6\" 2GB RAM/64GB ROM 5000mAh - Titanium Gold", "price": 854055.0, "brand": "Other", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/itel-a100c-6.6-2gb-ram64gb-rom-5000mah-titanium-gold-418774434.html"}, {"name": "XIAOMI REDMI A5 - 6.88 3GB RAM/64GB ROM -- BLACK", "price": 1059995.0, "brand": "Xiaomi", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/xiaomi-redmi-a5-6.88-3gb-ram64gb-rom-black-408237967.html"}, {"name": "itel 2165 Wireless FM, Torch, Dual SIM Phone + 24 Month Warranty", "price": 1099039.0, "brand": "Other", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/itel-2165-wireless-fm-torch-dual-sim-phone-24-month-warranty-382158384.html"}, {"name": "Nokia 105_African Edition 1.77\" 4MB/4MB 800 MAh Dual Sim - Charcoal", "price": 1299046.0, "brand": "Nokia", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/nokia-105african-edition-1.77-4mb4mb-800-mah-dual-sim-charcoal-378230102.html"}, {"name": "XIAOMI Redmi 15C 6.9'' 8GBRAM/256GB ROM Android 15 -Midnight Black", "price": 1729998.0, "brand": "Xiaomi", "rating": null, "discount": 0, "url": "https://www.jumia.com.ng/redmi-15c-6.9-8gbram256gb-rom-android-15-midnight-black-xiaomi-mpg11537492.html"}];
+        
+        // State
+        let currentSort = 'price-asc';
+        let currentSearch = '';
+        let currentBrand = 'all';
+        let minPrice = 6340.0;
+        let maxPrice = 1729998.0;
+        
+        // Initialize chart
+        let priceChart = null;
+        
+        // Format price
+        function formatPrice(price) {
+            return '₦' + price.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+        
+        // Filter and sort products
+        function getFilteredProducts() {
+            return products.filter(p => {
+                // Search filter
+                if (currentSearch && !p.name.toLowerCase().includes(currentSearch.toLowerCase())) {
+                    return false;
+                }
+                
+                // Brand filter
+                if (currentBrand !== 'all' && p.brand !== currentBrand) {
+                    return false;
+                }
+                
+                // Price filter
+                if (p.price < minPrice || p.price > maxPrice) {
+                    return false;
+                }
+                
+                return true;
+            }).sort((a, b) => {
+                switch(currentSort) {
+                    case 'price-asc': return a.price - b.price;
+                    case 'price-desc': return b.price - a.price;
+                    case 'name-asc': return a.name.localeCompare(b.name);
+                    case 'name-desc': return b.name.localeCompare(a.name);
+                    case 'rating-desc': return (b.rating || 0) - (a.rating || 0);
+                    case 'discount-desc': return (b.discount || 0) - (a.discount || 0);
+                    default: return 0;
+                }
+            });
+        }
+        
+        // Update table
+        function updateTable() {
+            const filtered = getFilteredProducts();
+            const tbody = document.getElementById('table-body');
+            const noResults = document.getElementById('no-results');
+            
+            // Update total count
+            document.getElementById('total-count').textContent = filtered.length;
+            
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                noResults.style.display = 'block';
+                return;
+            }
+            
+            noResults.style.display = 'none';
+            
+            tbody.innerHTML = filtered.map(p => `
+                <tr>
+                    <td>${p.name.substring(0, 60)}${p.name.length > 60 ? '...' : ''}</td>
+                    <td class="price">${formatPrice(p.price)}</td>
+                    <td><span class="brand-badge">${p.brand}</span></td>
+                    <td class="rating">${p.rating ? '⭐'.repeat(Math.round(p.rating)) + ' ' + p.rating.toFixed(1) : 'No rating'}</td>
+                    <td>${p.discount ? p.discount + '% off' : '-'}</td>
+                </tr>
+            `).join('');
+            
+            updateChart(filtered);
+        }
+        
+        // Update chart
+        function updateChart(filtered) {
+            // Group by brand
+            const brandGroups = {};
+            filtered.forEach(p => {
+                brandGroups[p.brand] = (brandGroups[p.brand] || 0) + 1;
+            });
+            
+            const brands = Object.keys(brandGroups);
+            const counts = Object.values(brandGroups);
+            
+            if (priceChart) {
+                priceChart.destroy();
+            }
+            
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            priceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: brands,
+                    datasets: [{
+                        label: 'Number of Products',
+                        data: counts,
+                        backgroundColor: 'rgba(102, 126, 234, 0.7)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2,
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Products by Brand',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Sort table
+        function sortTable(column) {
+            switch(column) {
+                case 'name': currentSort = currentSort === 'name-asc' ? 'name-desc' : 'name-asc'; break;
+                case 'price': currentSort = currentSort === 'price-asc' ? 'price-desc' : 'price-asc'; break;
+                case 'rating': currentSort = 'rating-desc'; break;
+                case 'discount': currentSort = 'discount-desc'; break;
+            }
+            updateTable();
+        }
+        
+        // Reset filters
+        function resetFilters() {
+            currentSearch = '';
+            currentBrand = 'all';
+            minPrice = 6340.0;
+            maxPrice = 1729998.0;
+            
+            document.getElementById('search-input').value = '';
+            document.getElementById('brand-select').value = 'all';
+            document.getElementById('price-min').value = minPrice;
+            document.getElementById('price-max').value = maxPrice;
+            document.getElementById('min-price-display').textContent = minPrice.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById('max-price-display').textContent = maxPrice.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            
+            updateTable();
+        }
+        
+        // Event listeners
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            currentSearch = e.target.value;
+            updateTable();
+        });
+        
+        document.getElementById('brand-select').addEventListener('change', (e) => {
+            currentBrand = e.target.value;
+            updateTable();
+        });
+        
+        document.getElementById('sort-select').addEventListener('change', (e) => {
+            currentSort = e.target.value;
+            updateTable();
+        });
+        
+        document.getElementById('price-min').addEventListener('input', (e) => {
+            minPrice = parseInt(e.target.value);
+            document.getElementById('min-price-display').textContent = minPrice.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            if (minPrice > maxPrice) {
+                maxPrice = minPrice;
+                document.getElementById('price-max').value = maxPrice;
+                document.getElementById('max-price-display').textContent = maxPrice.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
+            updateTable();
+        });
+        
+        document.getElementById('price-max').addEventListener('input', (e) => {
+            maxPrice = parseInt(e.target.value);
+            document.getElementById('max-price-display').textContent = maxPrice.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            if (maxPrice < minPrice) {
+                minPrice = maxPrice;
+                document.getElementById('price-min').value = minPrice;
+                document.getElementById('min-price-display').textContent = minPrice.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
+            updateTable();
+        });
+        
+        // Initial load
+        updateTable();
+    </script>
+</body>
+</html>
