@@ -32,7 +32,7 @@ This project demonstrates a complete data pipeline:
 ## 🌐 Live Demo
 
 Experience the interactive dashboard:  
-🔗 [Jumia Price Tracker Dashboard](https://mr-martynz.github.io/jumia-price-tracker/output/fresh_dashboard.html)
+🔗 [Jumia Price Tracker Dashboard](https://mr-martynz.github.io/jumia-price-tracker/output/dashboard.html)
 
 ## 📊 Sample Output
 
