@@ -29,6 +29,11 @@ This project demonstrates a complete data pipeline:
 - ✅ **Interactive Charts** - Bar charts that update with filters
 - ✅ **Multi-format Export** - CSV, JSON, and HTML outputs
 
+## 🌐 Live Demo
+
+Experience the interactive dashboard:  
+🔗 [Jumia Price Tracker Dashboard](https://mr-martynz.github.io/jumia-price-tracker/output/fresh_dashboard.html)
+
 ## 📊 Sample Output
 
 The dashboard shows:
