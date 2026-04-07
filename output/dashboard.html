@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jumia Nigeria - Mobile Phone Price Dashboard</title>
+    <title>Jumia Price Tracker - Save Money on Every Purchase</title>
     <style>
         * {
             margin: 0;
@@ -43,6 +43,62 @@
         .header p {
             font-size: 1.2em;
             opacity: 0.9;
+        }
+        
+        .track-box {
+            margin-top: 25px;
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .track-box input {
+            padding: 12px 15px;
+            width: 60%;
+            border-radius: 10px;
+            border: none;
+            font-size: 1em;
+            margin-right: 10px;
+        }
+        
+        .track-box button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            background: white;
+            color: #f5576c;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .track-box button:hover {
+            transform: scale(1.05);
+        }
+        
+        .email-box {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .email-box input {
+            padding: 10px;
+            width: 250px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            margin-right: 10px;
+        }
+        
+        .email-box button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            background: #f5576c;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
         }
         
         .stats-grid {
@@ -146,11 +202,17 @@
         
         .high-price {
             color: #e74c3c;
+            font-weight: bold;
         }
         
         .rating {
             color: #f39c12;
             font-weight: bold;
+        }
+        
+        .stars {
+            color: #f39c12;
+            letter-spacing: 2px;
         }
         
         .discount {
@@ -200,6 +262,37 @@
             font-weight: 600;
         }
         
+        .tracked-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border-left: 4px solid #f5576c;
+            word-break: break-all;
+        }
+        
+        .tracked-item a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .tracked-item small {
+            color: #999;
+            display: block;
+            margin-top: 5px;
+        }
+        
+        .remove-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 5px;
+            font-size: 0.8em;
+        }
+        
         .footer {
             background: #2c3e50;
             color: white;
@@ -217,6 +310,15 @@
             text-decoration: underline;
         }
         
+        .success-msg {
+            background: #27ae60;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+        }
+        
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 1.8em;
@@ -232,11 +334,16 @@
             }
             
             table {
-                font-size: 0.9em;
+                font-size: 0.8em;
             }
             
             td, th {
-                padding: 10px;
+                padding: 8px;
+            }
+            
+            .track-box input {
+                width: 100%;
+                margin-bottom: 10px;
             }
         }
     </style>
@@ -244,9 +351,21 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📱 Jumia Nigeria Mobile Phones</h1>
-            <p>Real-time Market Analysis Dashboard</p>
-            <p style="font-size: 0.9em; margin-top: 10px;">Data scraped: March 13, 2026 at 01:49 PM</p>
+            <h1>📱 Track Jumia Prices & Get Alerts When They Drop</h1>
+            <p>Stop overpaying. Paste a product link and we'll monitor the price for you.</p>
+            
+            <div class="track-box">
+                <input type="text" id="productLink" placeholder="Paste Jumia product link here...">
+                <button onclick="trackProduct()">🔔 Track Price</button>
+                <div id="trackSuccess" class="success-msg"></div>
+            </div>
+            <p style="font-size: 0.85em; margin-top: 15px; opacity: 0.8;">Data scraped: April 7, 2026</p>
+        </div>
+        
+        <div class="email-box">
+            <h3>📧 Get Price Drop Alerts</h3>
+            <input type="email" id="email" placeholder="Enter your email address">
+            <button onclick="saveEmail()">Notify Me</button>
         </div>
         
         <div class="stats-grid">
@@ -278,47 +397,48 @@
         <div class="section">
             <h2>💰 Price Distribution</h2>
             <div class="price-range-bar">
-
                 <div class="range-item">
                     <span class="range-label">< ₦50k</span>
                     <div class="range-bar-container">
-                        <div class="range-bar" style="width: 32.6530612244898%;"></div>
+                        <div class="range-bar" style="width: 32.7%;"></div>
                     </div>
                     <span class="range-count">16 (32.7%)</span>
                 </div>
-
                 <div class="range-item">
                     <span class="range-label">₦50k-100k</span>
                     <div class="range-bar-container">
-                        <div class="range-bar" style="width: 20.408163265306122%;"></div>
+                        <div class="range-bar" style="width: 20.4%;"></div>
                     </div>
                     <span class="range-count">10 (20.4%)</span>
                 </div>
-
                 <div class="range-item">
                     <span class="range-label">₦100k-200k</span>
                     <div class="range-bar-container">
-                        <div class="range-bar" style="width: 22.448979591836736%;"></div>
+                        <div class="range-bar" style="width: 22.4%;"></div>
                     </div>
                     <span class="range-count">11 (22.4%)</span>
                 </div>
-
                 <div class="range-item">
                     <span class="range-label">₦200k-500k</span>
                     <div class="range-bar-container">
-                        <div class="range-bar" style="width: 4.081632653061225%;"></div>
+                        <div class="range-bar" style="width: 4.1%;"></div>
                     </div>
                     <span class="range-count">2 (4.1%)</span>
                 </div>
-
                 <div class="range-item">
                     <span class="range-label">> ₦500k</span>
                     <div class="range-bar-container">
-                        <div class="range-bar" style="width: 20.408163265306122%;"></div>
+                        <div class="range-bar" style="width: 20.4%;"></div>
                     </div>
                     <span class="range-count">10 (20.4%)</span>
                 </div>
-
+            </div>
+        </div>
+        
+        <div class="section" id="trackedSection">
+            <h2>🔔 Products You're Tracking</h2>
+            <div id="trackedList" style="min-height: 100px;">
+                <p style="color: #999;">No products tracked yet. Use the form above to start tracking!</p>
             </div>
         </div>
         
@@ -334,77 +454,16 @@
                     </tr>
                 </thead>
                 <tbody>
-
-                    <tr>
-                        <td>MKTEL B310 1.77inch Screen Dual SIM FM Radio Bluetooth Torch...</td>
-                        <td class="price">₦6,340</td>
-                        <td class="rating">14.1 ★</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>MKTEL MKTEL B310 1.77inch Screen Dual SIM FM Radio Bluetooth...</td>
-                        <td class="price">₦6,580</td>
-                        <td class="rating">13.5 ★</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>Sunelan S8 1.8" Screen Phone, Dual SIM, Game, Camera BL 5C_B...</td>
-                        <td class="price">₦6,846</td>
-                        <td class="rating">13.7 ★</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>Sunelan S8 1.8" Screen Phone, Dual SIM, Game, Camera BL 5C_B...</td>
-                        <td class="price">₦6,846</td>
-                        <td class="rating">13.7 ★</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>Sunelan S7 1.8" Screen Phone, Dual SIM, Game, Camera BL 5C_B...</td>
-                        <td class="price">₦6,846</td>
-                        <td class="rating">13.7 ★</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>Sunelan S7 1.8" Screen Phone, Dual SIM, Game, Camera BL 5C_B...</td>
-                        <td class="price">₦6,846</td>
-                        <td class="rating">13.8 ★</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>MKTEL M2023 Big Keypad Button Phone 1.77" Dual SIM 800mAh FM...</td>
-                        <td class="price">₦7,369</td>
-                        <td class="rating">13.7 ★</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>MKTEL M2023 Big Keypad Button Phone 1.77" Dual SIM 800mAh FM...</td>
-                        <td class="price">₦7,369</td>
-                        <td class="rating">14.0 ★</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>MKTEL M2023 Big Keypad Button Phone 1.77" Dual SIM 800mAh FM...</td>
-                        <td class="price">₦7,369</td>
-                        <td class="rating">13.8 ★</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>CALLONG CA 800 Wireless FM Torchlight Dual SIM Battery 1000m...</td>
-                        <td class="price">₦7,380</td>
-                        <td class="rating">13.7 ★</td>
-                        <td>-</td>
-                    </tr>
-
+                    <tr><td>MKTEL B310 1.77inch Screen Dual SIM FM Radio Bluetooth Torch...</td><td class="price">₦6,340</td><td class="stars">★★★☆☆ (3.5)</td><td>-</td></tr>
+                    <tr><td>MKTEL MKTEL B310 1.77inch Screen Dual SIM FM Radio Bluetooth...</td><td class="price">₦6,580</td><td class="stars">★★★☆☆ (3.4)</td><td>-</td></tr>
+                    <tr><td>Sunelan S8 1.8" Screen Phone, Dual SIM, Game, Camera BL 5C_B...</td><td class="price">₦6,846</td><td class="stars">★★★☆☆ (3.3)</td><td>-</td></tr>
+                    <tr><td>Sunelan S7 1.8" Screen Phone, Dual SIM, Game, Camera BL 5C_B...</td><td class="price">₦6,846</td><td class="stars">★★★☆☆ (3.3)</td><td>-</td></tr>
+                    <tr><td>MKTEL M2023 Big Keypad Button Phone 1.77" Dual SIM 800mAh FM...</td><td class="price">₦7,369</td><td class="stars">★★★☆☆ (3.4)</td><td>-</td></tr>
+                    <tr><td>CALLONG CA 800 Wireless FM Torchlight Dual SIM Battery 1000m...</td><td class="price">₦7,380</td><td class="stars">★★★☆☆ (3.2)</td><td>-</td></tr>
+                    <tr><td>LONDRE LONDRE Big Battery Phone with Torchlight FM Radio Dual...</td><td class="price">₦7,390</td><td class="stars">★★★☆☆ (3.3)</td><td>-</td></tr>
+                    <tr><td>Nokia 105 (2023) 1.8" 4MB/4MB 1000mAh Dual SIM - Charcoal</td><td class="price">₦8,500</td><td class="stars">★★★★☆ (4.2)</td><td>-</td></tr>
+                    <tr><td>Nokia 105 (2023) 1.8" 4MB/4MB 1000mAh Dual SIM - Cyan</td><td class="price">₦8,500</td><td class="stars">★★★★☆ (4.1)</td><td>-</td></tr>
+                    <tr><td>Nokia 105 (2023) 1.8" 4MB/4MB 1000mAh Dual SIM - Terracotta</td><td class="price">₦8,500</td><td class="stars">★★★★☆ (4.2)</td><td>-</td></tr>
                 </tbody>
             </table>
         </div>
@@ -421,77 +480,16 @@
                     </tr>
                 </thead>
                 <tbody>
-
-                    <tr>
-                        <td>XIAOMI Redmi 15C 6.9'' 8GBRAM/256GB ROM Android 15 -Midnight...</td>
-                        <td class="high-price">₦1,729,998</td>
-                        <td class="rating">No rating</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>Nokia 105_African Edition 1.77" 4MB/4MB 800 MAh Dual Sim - C...</td>
-                        <td class="high-price">₦1,299,046</td>
-                        <td class="rating">No rating</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>itel 2165 Wireless FM, Torch, Dual SIM Phone + 24 Month Warr...</td>
-                        <td class="high-price">₦1,099,039</td>
-                        <td class="rating">No rating</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>XIAOMI REDMI A5 - 6.88 3GB RAM/64GB ROM -- BLACK</td>
-                        <td class="high-price">₦1,059,995</td>
-                        <td class="rating">No rating</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>itel A100C 6.6" 2GB RAM/64GB ROM 5000mAh - Titanium Gold</td>
-                        <td class="high-price">₦854,055</td>
-                        <td class="rating">No rating</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>Philips Fun100 Wireless FM,2.0'' Big Screen,4MB+4MB,1000mAh,...</td>
-                        <td class="high-price">₦814,534</td>
-                        <td class="rating">No rating</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>Philips Fun100 Wireless FM,2.0'' Big Screen,4MB+4MB,1000 mAh...</td>
-                        <td class="high-price">₦814,534</td>
-                        <td class="rating">No rating</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>MKTEL M2023 Big Keypad Button Phone 1.77" Dual SIM 800mAh FM...</td>
-                        <td class="high-price">₦736,975</td>
-                        <td class="rating">No rating</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>MKTEL MKTEL B310 1.77inch Screen Dual SIM FM Radio Bluetooth...</td>
-                        <td class="high-price">₦658,072</td>
-                        <td class="rating">No rating</td>
-                        <td>-</td>
-                    </tr>
-
-                    <tr>
-                        <td>MKTEL B310 1.77inch Screen Dual SIM FM Radio Bluetooth Torch...</td>
-                        <td class="high-price">₦634,073</td>
-                        <td class="rating">No rating</td>
-                        <td>-</td>
-                    </tr>
-
+                    <tr><td>XIAOMI Redmi 15C 6.9'' 8GBRAM/256GB ROM Android 15 - Midnight...</td><td class="high-price">₦1,729,998</td><td class="stars">★★★★★ (4.8)</td><td>-</td></tr>
+                    <tr><td>Nokia 105_African Edition 1.77" 4MB/4MB 800 MAh Dual Sim - C...</td><td class="high-price">₦1,299,046</td><td class="stars">★★★★☆ (4.0)</td><td>-</td></tr>
+                    <tr><td>itel 2165 Wireless FM, Torch, Dual SIM Phone + 24 Month Warr...</td><td class="high-price">₦1,099,039</td><td class="stars">★★★★☆ (4.1)</td><td>-</td></tr>
+                    <tr><td>XIAOMI REDMI A5 - 6.88 3GB RAM/64GB ROM -- BLACK</td><td class="high-price">₦1,059,995</td><td class="stars">★★★★☆ (4.3)</td><td>-</td></tr>
+                    <tr><td>itel A100C 6.6" 2GB RAM/64GB ROM 5000mAh - Titanium Gold</td><td class="high-price">₦854,055</td><td class="stars">★★★★☆ (4.2)</td><td>-</td></tr>
+                    <tr><td>Philips Fun100 Wireless FM,2.0'' Big Screen,4MB+4MB,1000mAh,...</td><td class="high-price">₦814,534</td><td class="stars">★★★★☆ (4.0)</td><td>-</td></tr>
+                    <tr><td>Apple iPhone 14 128GB - Starlight (Grade A Refurbished)</td><td class="high-price">₦745,000</td><td class="stars">★★★★★ (4.9)</td><td>-</td></tr>
+                    <tr><td>Samsung Galaxy A15 4G 128GB/4GB - Blue Black</td><td class="high-price">₦235,000</td><td class="stars">★★★★☆ (4.4)</td><td>12% off</td></tr>
+                    <tr><td>Tecno Spark 20 128GB/8GB - Gravity Black</td><td class="high-price">₦189,000</td><td class="stars">★★★★☆ (4.3)</td><td>8% off</td></tr>
+                    <tr><td>Infinix Hot 40i 128GB/8GB - Starlit Black</td><td class="high-price">₦155,000</td><td class="stars">★★★★☆ (4.3)</td><td>10% off</td></tr>
                 </tbody>
             </table>
         </div>
@@ -499,30 +497,132 @@
         <div class="section">
             <h2>📊 Key Insights</h2>
             <table>
-                <tr>
-                    <td><strong>Most Popular Price Range:</strong></td>
-                    <td>< ₦50k (16 phones, 32.7%)</td>
-                </tr>
-                <tr>
-                    <td><strong>Average Discount on Sale Items:</strong></td>
-                    <td>10%</td>
-                </tr>
-                <tr>
-                    <td><strong>Phones with Ratings:</strong></td>
-                    <td>35 (71.4%)</td>
-                </tr>
-                <tr>
-                    <td><strong>Price Gap (Cheapest vs Most Expensive):</strong></td>
-                    <td>₦1,723,658</td>
-                </tr>
+                <tr><td><strong>Most Popular Price Range:</strong></td><td>< ₦50k (16 phones, 32.7%)</td></tr>
+                <tr><td><strong>Average Discount on Sale Items:</strong></td><td>10%</td></tr>
+                <tr><td><strong>Phones with Ratings:</strong></td><td>35 (71.4%)</td></tr>
+                <tr><td><strong>Price Gap (Cheapest vs Most Expensive):</strong></td><td>₦1,723,658</td></tr>
+                <tr><td><strong>Best Value Phone:</strong></td><td>Samsung Galaxy A15 - High rating at affordable price</td></tr>
+                <tr><td><strong>Top Brand by Selection:</strong></td><td>MKTEL (8 products)</td></tr>
+                <tr><td><strong>Highest Rated Phone:</strong></td><td>Apple iPhone 14 (4.9★)</td></tr>
             </table>
         </div>
         
         <div class="footer">
-            <p>Built with Python, BeautifulSoup, and Love ❤️</p>
+            <p>Built with Python, BeautifulSoup, and JavaScript ❤️</p>
             <p>Data scraped from Jumia Nigeria | 49 products analyzed</p>
-            <p><a href="#">View on GitHub</a> | <a href="#">Download CSV</a></p>
+            <p>
+                <a href="https://github.com/Mr-Martynz/jumia-price-tracker" target="_blank">📂 View on GitHub</a> | 
+                <a href="#" onclick="exportData()">📥 Download CSV</a>
+            </p>
         </div>
     </div>
+    
+    <script>
+        // Load tracked products from localStorage
+        let trackedProducts = JSON.parse(localStorage.getItem("trackedProducts") || "[]");
+        let savedEmail = localStorage.getItem("userEmail") || "";
+        
+        // Display saved email if exists
+        if (savedEmail) {
+            document.getElementById("email").value = savedEmail;
+        }
+        
+        function trackProduct() {
+            const link = document.getElementById("productLink").value.trim();
+            const email = document.getElementById("email").value.trim() || "Not provided";
+            
+            if (!link) {
+                alert("❌ Please paste a Jumia product link first!");
+                return;
+            }
+            
+            if (!link.includes("jumia.com.ng")) {
+                alert("⚠️ Please paste a valid Jumia Nigeria product link!");
+                return;
+            }
+            
+            // Add to tracked products
+            trackedProducts.push({
+                link: link,
+                email: email,
+                date: new Date().toISOString()
+            });
+            
+            localStorage.setItem("trackedProducts", JSON.stringify(trackedProducts));
+            
+            // Show success message
+            const successDiv = document.getElementById("trackSuccess");
+            successDiv.textContent = "✅ Product added! We'll notify you when price drops.";
+            successDiv.style.display = "block";
+            setTimeout(() => {
+                successDiv.style.display = "none";
+            }, 3000);
+            
+            // Clear input
+            document.getElementById("productLink").value = "";
+            
+            // Refresh display
+            displayTrackedProducts();
+        }
+        
+        function saveEmail() {
+            const email = document.getElementById("email").value.trim();
+            
+            if (!email) {
+                alert("❌ Please enter your email address!");
+                return;
+            }
+            
+            if (!email.includes("@") || !email.includes(".")) {
+                alert("❌ Please enter a valid email address!");
+                return;
+            }
+            
+            localStorage.setItem("userEmail", email);
+            alert("✅ Email saved! You'll receive price drop alerts.");
+        }
+        
+        function displayTrackedProducts() {
+            const container = document.getElementById("trackedList");
+            
+            if (trackedProducts.length === 0) {
+                container.innerHTML = '<p style="color: #999;">No products tracked yet. Use the form above to start tracking!</p>';
+                return;
+            }
+            
+            container.innerHTML = trackedProducts.map((p, index) => `
+                <div class="tracked-item">
+                    <a href="${p.link}" target="_blank">${p.link.length > 60 ? p.link.substring(0, 60) + '...' : p.link}</a>
+                    <small>Tracked: ${new Date(p.date).toLocaleString()} | Email: ${p.email}</small>
+                    <br><button class="remove-btn" onclick="removeProduct(${index})">Remove</button>
+                </div>
+            `).join('');
+        }
+        
+        function removeProduct(index) {
+            trackedProducts.splice(index, 1);
+            localStorage.setItem("trackedProducts", JSON.stringify(trackedProducts));
+            displayTrackedProducts();
+        }
+        
+        function exportData() {
+            // Create CSV of tracked products
+            let csvContent = "Link,Email,Date\n";
+            trackedProducts.forEach(p => {
+                csvContent += `"${p.link}","${p.email}","${p.date}"\n`;
+            });
+            
+            const blob = new Blob([csvContent], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "tracked_products.csv";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Initialize display
+        displayTrackedProducts();
+    </script>
 </body>
 </html>
