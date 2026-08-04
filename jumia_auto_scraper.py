@@ -245,14 +245,15 @@ class JumiaAutoScraper:
     
     def extract_rating(self, container):
         """
-        Extract product rating if available
+        Extract product rating if available.
+        Only accepts values in the valid 0-5 range — anything outside that
+        is almost certainly a mismatched number (e.g. a review count or an
+        unrelated percentage on the page), not a real rating.
         """
-        # Look for stars or rating text
         rating_patterns = [
             r'(\d+(?:\.\d+)?)\s*out of\s*5',
             r'(\d+(?:\.\d+)?)\s*stars?',
             r'rating[:\s]*(\d+(?:\.\d+)?)',
-            r'(\d+)%\s*positive'
         ]
         
         text = container.get_text()
@@ -260,7 +261,9 @@ class JumiaAutoScraper:
             match = re.search(pattern, text, re.I)
             if match:
                 try:
-                    return float(match.group(1))
+                    value = float(match.group(1))
+                    if 0 <= value <= 5:
+                        return value
                 except:
                     pass
         
@@ -270,7 +273,7 @@ class JumiaAutoScraper:
             # Count filled stars
             star_text = ' '.join([s.get('class', [''])[0] for s in stars])
             filled = len(re.findall(r'filled|active|full', star_text))
-            if filled > 0:
+            if 0 < filled <= 5:
                 return filled
         
         return None
@@ -384,6 +387,18 @@ class JumiaAutoScraper:
                     'scrape_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                     'source_url': url
                 }
+
+                # If we couldn't find explicit "X% off" text on the page but
+                # we do have both prices, calculate the discount ourselves —
+                # more reliable than depending on fragile page text existing.
+                if (product['discount_percent'] is None
+                        and product['original_price']
+                        and product['price']
+                        and product['original_price'] > product['price']):
+                    product['discount_percent'] = round(
+                        (product['original_price'] - product['price']) / product['original_price'] * 100,
+                        1
+                    )
                 
                 # Only add if we have at least name and price
                 if product['name'] and product['price']:
@@ -534,7 +549,7 @@ def main():
     Run the scraper with your specific URL
     """
     # YOUR URL
-    TARGET_URL = "https://www.jumia.com.ng/mobile-phones/"
+    TARGET_URL = "https://www.jumia.com.ng/mobile-phones/?srsltid=AfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"
     
     # Create scraper
     scraper = JumiaAutoScraper()
