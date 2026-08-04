@@ -1,250 +1,146 @@
-"""
-Create a simple HTML dashboard from Jumia data
-"""
-
+import streamlit as st
 import pandas as pd
-import glob
-import webbrowser
+import matplotlib.pyplot as plt
+import sqlite3
+import sys
 import os
-from datetime import datetime
 
-# Find the latest CSV file
-csv_files = glob.glob('output/jumia_phones_*.csv')
-if not csv_files:
-    print("❌ No CSV files found in output folder")
-    exit()
+# dashboard/app.py needs to reach scrapers/database.py, which is a sibling
+# folder, not a subfolder — add the project root to sys.path so the import
+# below can find it.
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE_DIR)
 
-latest_file = max(csv_files, key=os.path.getctime)
-print(f"📁 Using file: {latest_file}")
+from scrapers.database import DB_PATH
 
-# Load the data
-df = pd.read_csv(latest_file)
-print(f"📊 Loaded {len(df)} products")
+st.set_page_config(
+    page_title="Jumia Price Tracker",
+    page_icon="🛒",
+    layout="wide"
+)
 
-# Clean the data (remove crazy outliers if needed)
-# If price > 10 million, might be error
-df_clean = df[df['price'] < 5000000]  # Remove prices over 5 million
-print(f"🧹 After cleaning: {len(df_clean)} products (removed {len(df)-len(df_clean)} outliers)")
 
-# Create HTML
-html_content = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Jumia Phone Price Dashboard</title>
-    <style>
-        body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: #f5f5f5;
-            color: #333;
-        }}
-        .container {{
-            max-width: 1200px;
-            margin: 0 auto;
-        }}
-        h1 {{
-            color: #f68b1e;
-            border-bottom: 3px solid #f68b1e;
-            padding-bottom: 10px;
-        }}
-        .stats-grid {{
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin: 30px 0;
-        }}
-        .card {{
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
-        }}
-        .card h3 {{
-            margin: 0 0 10px 0;
-            color: #666;
-            font-size: 14px;
-            text-transform: uppercase;
-        }}
-        .card .value {{
-            font-size: 28px;
-            font-weight: bold;
-            color: #f68b1e;
-        }}
-        .card .small {{
-            font-size: 14px;
-            color: #999;
-            margin-top: 5px;
-        }}
-        table {{
-            width: 100%;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin: 20px 0;
-        }}
-        th {{
-            background: #f68b1e;
-            color: white;
-            padding: 12px;
-            text-align: left;
-        }}
-        td {{
-            padding: 10px 12px;
-            border-bottom: 1px solid #eee;
-        }}
-        tr:hover {{
-            background: #f9f9f9;
-        }}
-        .price {{
-            font-weight: bold;
-            color: #27ae60;
-        }}
-        .high-price {{
-            color: #e74c3c;
-        }}
-        .rating {{
-            color: #f39c12;
-        }}
-        .footer {{
-            margin-top: 30px;
-            text-align: center;
-            color: #999;
-            font-size: 12px;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>📱 Jumia Nigeria - Mobile Phone Prices</h1>
-        <p>Data scraped: {datetime.now().strftime('%B %d, %Y at %H:%M')}</p>
-        
-        <div class="stats-grid">
-            <div class="card">
-                <h3>Total Products</h3>
-                <div class="value">{len(df_clean)}</div>
-                <div class="small">phones analyzed</div>
-            </div>
-            <div class="card">
-                <h3>Price Range</h3>
-                <div class="value">₦{df_clean['price'].min():,.0f} - ₦{df_clean['price'].max():,.0f}</div>
-                <div class="small">min - max</div>
-            </div>
-            <div class="card">
-                <h3>Average Price</h3>
-                <div class="value">₦{df_clean['price'].mean():,.0f}</div>
-                <div class="small">per phone</div>
-            </div>
-            <div class="card">
-                <h3>On Sale</h3>
-                <div class="value">{df_clean['original_price'].notna().sum()}</div>
-                <div class="small">products with discounts</div>
-            </div>
-        </div>
-        
-        <h2>💰 Cheapest 10 Phones</h2>
-        <table>
-            <tr>
-                <th>Product Name</th>
-                <th>Price (₦)</th>
-                <th>Rating</th>
-                <th>Discount</th>
-            </tr>
-"""
-
-# Add cheapest 10 phones
-for _, row in df_clean.nsmallest(10, 'price').iterrows():
-    name = row['name'][:60] + '...' if len(str(row['name'])) > 60 else row['name']
-    discount = f"{row['discount_percent']}%" if pd.notna(row['discount_percent']) else '-'
-    rating = f"{row['rating']}★" if pd.notna(row['rating']) else '-'
-    
-    html_content += f"""
-            <tr>
-                <td>{name}</td>
-                <td class="price">₦{row['price']:,.0f}</td>
-                <td class="rating">{rating}</td>
-                <td>{discount}</td>
-            </tr>
+def load_current_prices():
     """
-
-html_content += """
-        </table>
-        
-        <h2>💰 Most Expensive 10 Phones</h2>
-        <table>
-            <tr>
-                <th>Product Name</th>
-                <th>Price (₦)</th>
-                <th>Rating</th>
-                <th>Discount</th>
-            </tr>
-"""
-
-# Add most expensive 10 phones
-for _, row in df_clean.nlargest(10, 'price').iterrows():
-    name = row['name'][:60] + '...' if len(str(row['name'])) > 60 else row['name']
-    discount = f"{row['discount_percent']}%" if pd.notna(row['discount_percent']) else '-'
-    rating = f"{row['rating']}★" if pd.notna(row['rating']) else '-'
-    
-    html_content += f"""
-            <tr>
-                <td>{name}</td>
-                <td class="price high-price">₦{row['price']:,.0f}</td>
-                <td class="rating">{rating}</td>
-                <td>{discount}</td>
-            </tr>
+    Returns one row per product with its most recent price — this is what
+    powers the top-5 cheapest/most-expensive overview. Uses a subquery to
+    grab only the latest scrape_date per product, not every historical row.
     """
+    conn = sqlite3.connect(DB_PATH)
+    df = pd.read_sql_query("""
+        SELECT p.id, p.product_name, h.price_ngn, h.scrape_date
+        FROM products p
+        JOIN price_history h ON p.id = h.product_id
+        WHERE h.scrape_date = (
+            SELECT MAX(scrape_date) FROM price_history WHERE product_id = p.id
+        )
+    """, conn)
+    conn.close()
+    return df
 
-html_content += f"""
-        </table>
-        
-        <h2>📊 Price Distribution</h2>
-        <table>
-            <tr>
-                <th>Price Range</th>
-                <th>Count</th>
-                <th>Percentage</th>
-            </tr>
-"""
 
-# Calculate price ranges
-bins = [0, 50000, 100000, 200000, 500000, float('inf')]
-labels = ['< ₦50k', '₦50k-100k', '₦100k-200k', '₦200k-500k', '> ₦500k']
-df_clean['price_range'] = pd.cut(df_clean['price'], bins=bins, labels=labels)
-range_counts = df_clean['price_range'].value_counts().sort_index()
+def load_price_history(product_id):
+    """Returns the full price history for one product, oldest first."""
+    conn = sqlite3.connect(DB_PATH)
+    df = pd.read_sql_query(
+        "SELECT scrape_date, price_ngn FROM price_history WHERE product_id = ? ORDER BY scrape_date",
+        conn,
+        params=(product_id,)
+    )
+    conn.close()
+    df["scrape_date"] = pd.to_datetime(df["scrape_date"])
+    return df
 
-for range_name, count in range_counts.items():
-    percentage = (count / len(df_clean)) * 100
-    html_content += f"""
-            <tr>
-                <td>{range_name}</td>
-                <td>{count}</td>
-                <td>{percentage:.1f}%</td>
-            </tr>
-    """
 
-html_content += f"""
-        </table>
-        
-        <div class="footer">
-            <p>Data scraped from Jumia Nigeria | {len(df_clean)} products analyzed</p>
-            <p>₦13.5M phone removed as probable data error</p>
-        </div>
-    </div>
-</body>
-</html>
-"""
+def render_product_list(df, label):
+    """Renders a simple ranked list of products with their prices."""
+    st.markdown(f"**{label}**")
+    for _, row in df.iterrows():
+        name = row["product_name"]
+        short_name = name[:55] + "..." if len(name) > 55 else name
+        st.write(f"₦{row['price_ngn']:,.0f} — {short_name}")
 
-# Save the HTML file
-output_file = 'output/dashboard.html'
-with open(output_file, 'w', encoding='utf-8') as f:
-    f.write(html_content)
 
-print(f"✅ Dashboard created: {output_file}")
+# ---- HEADER ----
+st.title("🛒 Jumia Price Tracker")
+st.caption("Track how product prices change over time")
 
-# Open in browser
-webbrowser.open('file://' + os.path.abspath(output_file))
-print("🚀 Dashboard opened in your browser")
+current_prices_df = load_current_prices()
+
+if current_prices_df.empty:
+    st.error("No products tracked yet. Run the scraper first to collect some data.")
+    st.stop()
+
+st.divider()
+
+# ---- SEARCH & DRILL INTO A SPECIFIC PRODUCT ----
+st.subheader("🔍 Search for a Product")
+
+search_term = st.text_input("Type part of a product name:", "")
+
+if search_term:
+    filtered_df = current_prices_df[
+        current_prices_df["product_name"].str.contains(search_term, case=False, na=False)
+    ]
+else:
+    filtered_df = current_prices_df
+
+if filtered_df.empty:
+    st.warning("No products match that search. Browse the overview below instead.")
+else:
+    selected_name = st.selectbox(
+        f"Choose a product to view ({len(filtered_df)} match{'es' if len(filtered_df) != 1 else ''}):",
+        filtered_df["product_name"].sort_values()
+    )
+    selected_id = int(filtered_df.loc[filtered_df["product_name"] == selected_name, "id"].iloc[0])
+
+    history_df = load_price_history(selected_id)
+
+    if len(history_df) < 2:
+        st.info("📊 Only 1 price point recorded so far for this product — check back after the next scrape to see a trend.")
+        st.metric("Current Price", f"₦{history_df['price_ngn'].iloc[-1]:,.0f}")
+    else:
+        current_price = history_df["price_ngn"].iloc[-1]
+        lowest_price = history_df["price_ngn"].min()
+        highest_price = history_df["price_ngn"].max()
+        first_price = history_df["price_ngn"].iloc[0]
+        pct_change = ((current_price - first_price) / first_price) * 100
+
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Current Price", f"₦{current_price:,.0f}")
+        with col2:
+            st.metric("Lowest Recorded", f"₦{lowest_price:,.0f}")
+        with col3:
+            st.metric("Highest Recorded", f"₦{highest_price:,.0f}")
+        with col4:
+            st.metric("Change Since First Seen", f"{pct_change:+.1f}%", delta=f"{pct_change:+.1f}%")
+
+        st.subheader("Price History")
+
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.plot(history_df["scrape_date"], history_df["price_ngn"],
+                color="#f68b1e", linewidth=2, marker="o", markersize=6)
+        ax.set_ylabel("Price (₦)")
+        ax.set_xlabel("Date")
+        plt.xticks(rotation=30)
+        plt.tight_layout()
+        st.pyplot(fig)
+
+st.divider()
+
+# ---- OVERVIEW: TOP 5 CHEAPEST / MOST EXPENSIVE ----
+st.subheader("📊 Browse: Top 5 Cheapest & Most Expensive")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    cheapest = current_prices_df.nsmallest(5, "price_ngn")
+    render_product_list(cheapest, "💸 Top 5 Cheapest")
+
+with col2:
+    priciest = current_prices_df.nlargest(5, "price_ngn")
+    render_product_list(priciest, "👑 Top 5 Most Expensive")
+
+st.divider()
+st.caption(f"Tracking {len(current_prices_df)} products total.")
