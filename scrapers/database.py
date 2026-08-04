@@ -95,23 +95,26 @@ def insert_price_snapshot(product_id, price_ngn, original_price_ngn, rating, scr
 
 def save_scraped_products(products):
     """
-    Takes the list of product dicts from the scraper and saves them all:
-    upserts each product, then records today's price snapshot for each.
-    Skips products with no valid price or URL (bad scrape data).
+    Takes the list of product dicts from JumiaAutoScraper.scrape_page() and
+    saves them all: upserts each product, then records a price snapshot for
+    each. Skips products with no URL or no price (incomplete scrape data).
+
+    Expects each product dict to have: name, price, url, original_price,
+    rating, scrape_date — matching JumiaAutoScraper's output fields.
     """
     init_db()
     saved_count = 0
 
     for product in products:
-        if product['product_url'] == 'N/A' or product['price_ngn'] is None:
+        if not product.get('url') or product.get('price') is None:
             continue
 
-        product_id = upsert_product(product['product_url'], product['product_name'])
+        product_id = upsert_product(product['url'], product['name'])
         insert_price_snapshot(
             product_id,
-            product['price_ngn'],
-            product['original_price_ngn'],
-            product['rating'],
+            product['price'],
+            product.get('original_price'),
+            product.get('rating'),
             product['scrape_date']
         )
         saved_count += 1

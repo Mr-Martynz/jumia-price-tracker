@@ -14,6 +14,8 @@ from datetime import datetime
 import os
 from urllib.parse import urljoin
 
+from scrapers.database import save_scraped_products
+
 class JumiaAutoScraper:
     """
     Scrapes ANY Jumia Nigeria page automatically
@@ -532,7 +534,7 @@ def main():
     Run the scraper with your specific URL
     """
     # YOUR URL
-    TARGET_URL = "https://www.jumia.com.ng/mobile-phones/?srsltid=AfmBOoqKDbb6nyDTisu1FR1udGnNMVYEd10R9gIbqjUjNvJ95uVQufGp"
+    TARGET_URL = "https://www.jumia.com.ng/mobile-phones/"
     
     # Create scraper
     scraper = JumiaAutoScraper()
@@ -548,6 +550,7 @@ def main():
         if products:
             # Save results
             df = scraper.save_results(products)
+            save_scraped_products(products)
             
             # Analyze results
             scraper.analyze_results(df)
