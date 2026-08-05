@@ -61,6 +61,10 @@ def render_product_list(df, label):
         st.write(f"₦{row['price_ngn']:,.0f} — {short_name}")
 
 
+# ---- SIDEBAR: QUICK STATS ----
+with st.sidebar:
+    st.header("📈 Quick Stats")
+
 # ---- HEADER ----
 st.title("🛒 Jumia Price Tracker")
 st.caption("Track how product prices change over time")
@@ -70,6 +74,12 @@ current_prices_df = load_current_prices()
 if current_prices_df.empty:
     st.error("No products tracked yet. Run the scraper first to collect some data.")
     st.stop()
+
+with st.sidebar:
+    st.metric("Total Products Tracked", len(current_prices_df))
+    st.metric("Average Price", f"₦{current_prices_df['price_ngn'].mean():,.0f}")
+    last_updated = current_prices_df["scrape_date"].max()
+    st.caption(f"Last updated: {last_updated}")
 
 st.divider()
 
@@ -121,6 +131,26 @@ else:
         fig, ax = plt.subplots(figsize=(10, 4))
         ax.plot(history_df["scrape_date"], history_df["price_ngn"],
                 color="#f68b1e", linewidth=2, marker="o", markersize=6)
+
+        # Annotate the lowest and highest points so the chart tells the
+        # story at a glance, without needing to cross-reference the metrics above.
+        low_idx = history_df["price_ngn"].idxmin()
+        high_idx = history_df["price_ngn"].idxmax()
+        low_point = history_df.loc[low_idx]
+        high_point = history_df.loc[high_idx]
+
+        ax.annotate(f"Lowest\n₦{low_point['price_ngn']:,.0f}",
+                    xy=(low_point["scrape_date"], low_point["price_ngn"]),
+                    xytext=(0, -25), textcoords="offset points",
+                    ha="center", fontsize=9, color="#2ecc71",
+                    arrowprops=dict(arrowstyle="->", color="#2ecc71"))
+
+        ax.annotate(f"Highest\n₦{high_point['price_ngn']:,.0f}",
+                    xy=(high_point["scrape_date"], high_point["price_ngn"]),
+                    xytext=(0, 20), textcoords="offset points",
+                    ha="center", fontsize=9, color="#e74c3c",
+                    arrowprops=dict(arrowstyle="->", color="#e74c3c"))
+
         ax.set_ylabel("Price (₦)")
         ax.set_xlabel("Date")
         plt.xticks(rotation=30)
