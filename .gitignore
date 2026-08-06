@@ -23,7 +23,6 @@ ENV/
 *.csv
 *.xlsx
 *.json
-*.db
 
 # OS
 .DS_Store
