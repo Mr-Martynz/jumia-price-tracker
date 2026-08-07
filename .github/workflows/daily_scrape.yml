@@ -1,0 +1,35 @@
+name: Daily Jumia Price Scrape
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  scrape-prices:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scraper
+        run: python jumia_auto_scraper.py
+
+      - name: Commit and push updated database
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add data/jumia_prices.db
+          git diff --staged --quiet || git commit -m "auto: daily price scrape $(date +%Y-%m-%d)"
+          git push origin master
