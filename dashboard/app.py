@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 import sqlite3
 import sys
 import os
@@ -19,13 +19,19 @@ st.set_page_config(
     layout="wide"
 )
 
+# A little breathing room between sections/columns — default Streamlit
+# spacing is tight, this loosens it slightly without a full custom theme.
+st.markdown("""
+    <style>
+        .block-container { padding-top: 2rem; padding-bottom: 3rem; }
+        div[data-testid="stMetric"] { padding: 0.5rem 0; }
+        div[data-testid="column"] { padding: 0 0.75rem; }
+    </style>
+""", unsafe_allow_html=True)
+
 
 def load_current_prices():
-    """
-    Returns one row per product with its most recent price — this is what
-    powers the top-5 cheapest/most-expensive overview. Uses a subquery to
-    grab only the latest scrape_date per product, not every historical row.
-    """
+    """One row per product with its most recent price."""
     conn = sqlite3.connect(DB_PATH)
     df = pd.read_sql_query("""
         SELECT p.id, p.product_name, h.price_ngn, h.scrape_date
@@ -40,7 +46,7 @@ def load_current_prices():
 
 
 def load_price_history(product_id):
-    """Returns the full price history for one product, oldest first."""
+    """Full price history for one product, oldest first."""
     conn = sqlite3.connect(DB_PATH)
     df = pd.read_sql_query(
         "SELECT scrape_date, price_ngn FROM price_history WHERE product_id = ? ORDER BY scrape_date",
@@ -53,12 +59,41 @@ def load_price_history(product_id):
 
 
 def render_product_list(df, label):
-    """Renders a simple ranked list of products with their prices."""
     st.markdown(f"**{label}**")
     for _, row in df.iterrows():
         name = row["product_name"]
         short_name = name[:55] + "..." if len(name) > 55 else name
         st.write(f"₦{row['price_ngn']:,.0f} — {short_name}")
+
+
+def get_trend(pct_change):
+    """
+    Converts a raw % change into a plain-English trend label.
+    Anything within +/-1% is treated as 'Stable' rather than Rising/Falling —
+    tiny fluctuations aren't a meaningful trend, and calling a 0.3% wobble
+    'Rising' would overstate what the data actually shows.
+    """
+    if pct_change > 1:
+        return "📈 Rising", "#e74c3c"
+    elif pct_change < -1:
+        return "📉 Falling", "#2ecc71"
+    else:
+        return "➡️ Stable", "#95a5a6"
+
+
+def get_buy_framing(pct_change):
+    """
+    Plain-English buy/wait framing based on price direction since first seen.
+    Deliberately conservative — this describes what already happened
+    (price went up or down), not a prediction of what will happen next.
+    We don't have enough history yet to forecast, so we don't claim to.
+    """
+    if pct_change <= -3:
+        return f"⬇️ Down {abs(pct_change):.1f}% since first tracked — good time to consider buying"
+    elif pct_change >= 3:
+        return f"⬆️ Up {pct_change:.1f}% since first tracked — may be worth waiting"
+    else:
+        return "Price has stayed roughly steady since first tracked"
 
 
 # ---- SIDEBAR: QUICK STATS ----
@@ -116,46 +151,56 @@ else:
         first_price = history_df["price_ngn"].iloc[0]
         pct_change = ((current_price - first_price) / first_price) * 100
 
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("Current Price", f"₦{current_price:,.0f}")
-        with col2:
-            st.metric("Lowest Recorded", f"₦{lowest_price:,.0f}")
-        with col3:
-            st.metric("Highest Recorded", f"₦{highest_price:,.0f}")
-        with col4:
-            st.metric("Change Since First Seen", f"{pct_change:+.1f}%", delta=f"{pct_change:+.1f}%")
+        trend_label, trend_color = get_trend(pct_change)
+        buy_framing = get_buy_framing(pct_change)
 
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Current Price", f"₦{current_price:,.0f}", delta=f"{pct_change:+.1f}%")
+        with col2:
+            st.markdown(f"**Price Trend**")
+            st.markdown(f"<span style='color:{trend_color}; font-size:1.4rem'>{trend_label}</span>", unsafe_allow_html=True)
+        with col3:
+            st.markdown("**Buy Signal**")
+            st.write(buy_framing)
+
+        st.divider()
         st.subheader("Price History")
 
-        fig, ax = plt.subplots(figsize=(10, 4))
-        ax.plot(history_df["scrape_date"], history_df["price_ngn"],
-                color="#f68b1e", linewidth=2, marker="o", markersize=6)
+        # Interactive Plotly chart — replaces the earlier static Matplotlib
+        # version. Lets viewers hover for exact values and zoom into a
+        # specific date range, which a flat image can't offer.
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=history_df["scrape_date"],
+            y=history_df["price_ngn"],
+            mode="lines+markers",
+            line=dict(color="#f68b1e", width=2),
+            marker=dict(size=8),
+            name="Price"
+        ))
 
-        # Annotate the lowest and highest points so the chart tells the
-        # story at a glance, without needing to cross-reference the metrics above.
         low_idx = history_df["price_ngn"].idxmin()
         high_idx = history_df["price_ngn"].idxmax()
-        low_point = history_df.loc[low_idx]
-        high_point = history_df.loc[high_idx]
+        fig.add_annotation(
+            x=history_df.loc[low_idx, "scrape_date"], y=history_df.loc[low_idx, "price_ngn"],
+            text=f"Lowest ₦{lowest_price:,.0f}", showarrow=True, arrowhead=2,
+            font=dict(color="#2ecc71"), ay=40
+        )
+        fig.add_annotation(
+            x=history_df.loc[high_idx, "scrape_date"], y=history_df.loc[high_idx, "price_ngn"],
+            text=f"Highest ₦{highest_price:,.0f}", showarrow=True, arrowhead=2,
+            font=dict(color="#e74c3c"), ay=-40
+        )
 
-        ax.annotate(f"Lowest\n₦{low_point['price_ngn']:,.0f}",
-                    xy=(low_point["scrape_date"], low_point["price_ngn"]),
-                    xytext=(0, -25), textcoords="offset points",
-                    ha="center", fontsize=9, color="#2ecc71",
-                    arrowprops=dict(arrowstyle="->", color="#2ecc71"))
+        fig.update_layout(
+            xaxis_title="Date",
+            yaxis_title="Price (₦)",
+            hovermode="x unified",
+            margin=dict(t=20, b=20)
+        )
 
-        ax.annotate(f"Highest\n₦{high_point['price_ngn']:,.0f}",
-                    xy=(high_point["scrape_date"], high_point["price_ngn"]),
-                    xytext=(0, 20), textcoords="offset points",
-                    ha="center", fontsize=9, color="#e74c3c",
-                    arrowprops=dict(arrowstyle="->", color="#e74c3c"))
-
-        ax.set_ylabel("Price (₦)")
-        ax.set_xlabel("Date")
-        plt.xticks(rotation=30)
-        plt.tight_layout()
-        st.pyplot(fig)
+        st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
 
