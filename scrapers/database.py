@@ -5,13 +5,39 @@ Handles SQLite schema creation and inserting scraped data.
 
 import sqlite3
 import os
+import re
 from datetime import datetime
+from urllib.parse import urlparse, urlunparse
 
 # Resolve the path relative to this file's location, not the current working
 # directory — this file lives in scrapers/, so the project root is one level up.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_DIR = os.path.join(BASE_DIR, "data")
 DB_PATH = os.path.join(DB_DIR, "jumia_prices.db")
+
+
+def normalize_url(url):
+    """
+    Strips query parameters and fragments from a URL, keeping only the
+    scheme/domain/path. Jumia product links sometimes carry tracking
+    parameters that change between scrapes even for the same product page —
+    without this, the same product could get stored as multiple different
+    rows just because its tracking params differed run to run.
+    """
+    parsed = urlparse(url)
+    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', ''))
+
+
+def normalize_name_key(name):
+    """
+    Lowercase, strip punctuation, sort words alphabetically — so a product
+    whose scraped title text varies slightly between scrapes (word order,
+    punctuation) still matches to the same underlying product, instead of
+    creating a new duplicate row every time Jumia's text differs slightly.
+    """
+    cleaned = re.sub(r'[^a-z0-9\s]', ' ', name.lower())
+    words = cleaned.split()
+    return ' '.join(sorted(words))
 
 
 def get_connection():
@@ -52,10 +78,13 @@ def init_db():
 
 def upsert_product(product_url, product_name):
     """
-    Inserts the product if it's new. If it already exists, does nothing
-    (keeps the original first_seen_date and name).
+    Inserts the product if it's new. Matches on URL first (fast, exact);
+    if no URL match, falls back to checking if any existing product has
+    the same normalized name — catches the same product appearing with
+    a slightly different URL or reworded title on a later scrape.
     Returns the product's id either way.
     """
+    product_url = normalize_url(product_url)
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -65,12 +94,25 @@ def upsert_product(product_url, product_name):
     if existing:
         product_id = existing[0]
     else:
-        today = datetime.now().strftime("%Y-%m-%d")
-        cursor.execute(
-            "INSERT INTO products (product_url, product_name, first_seen_date) VALUES (?, ?, ?)",
-            (product_url, product_name, today)
-        )
-        product_id = cursor.lastrowid
+        # No exact URL match — check if this is the same product under a
+        # different URL/title variant before creating a new row.
+        name_key = normalize_name_key(product_name)
+        cursor.execute("SELECT id, product_name FROM products")
+        name_match_id = None
+        for row_id, row_name in cursor.fetchall():
+            if normalize_name_key(row_name) == name_key:
+                name_match_id = row_id
+                break
+
+        if name_match_id:
+            product_id = name_match_id
+        else:
+            today = datetime.now().strftime("%Y-%m-%d")
+            cursor.execute(
+                "INSERT INTO products (product_url, product_name, first_seen_date) VALUES (?, ?, ?)",
+                (product_url, product_name, today)
+            )
+            product_id = cursor.lastrowid
 
     conn.commit()
     conn.close()
